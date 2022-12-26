@@ -1,0 +1,19 @@
+{
+  "name": "secret-santa-js",
+  "version": "0.1.0",
+  "description": "A simple script to send out secret santa emails",
+  "main": "secret-santa.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/delventhalz/secret-santa-js.git"
+  },
+  "author": "Zac Delventhal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/delventhalz/secret-santa-js/issues"
+  },
+  "homepage": "https://github.com/delventhalz/secret-santa-js#readme"
+}

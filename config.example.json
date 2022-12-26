@@ -1,5 +1,6 @@
 {
   "count": 1,
+  "maxRetries": 10,
   "santas": [
     {
       "name": "Ziggy",

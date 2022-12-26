@@ -62,8 +62,87 @@ const validateGroups = (santaMap, groups) => {
   }
 };
 
+const matchSantas = (santaMap, allGroups, maxCount) => {
+  const santas = shuffle([...santaMap.values()]);
+  const santaNames = [...santaMap.keys()];
+  const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
+  const allMatches = [];
+
+  for (const { name, email, blocked = [], always = [] } of santas) {
+    const remainingAlways = [...always];
+
+    const groupNames = allGroups
+      .filter(group => group.includes(name))
+      .flat();
+
+    const groupMatches = allMatches
+      .filter(([matcher]) => groupNames.includes(matcher))
+      .map(([_, __, matches]) => matches)
+      .flat();
+
+    let options = santaNames.filter(option => {
+      return (
+        option !== name
+        && !blocked.includes(option)
+        && !always.includes(option)
+        && !groupNames.includes(option)
+        && !groupMatches.includes(option)
+        && matchCounts[option] < maxCount
+      );
+    });
+
+    const matches = [];
+
+    while (matches.length < maxCount) {
+      let match;
+
+      if (remainingAlways.length > 0) {
+        match = remainingAlways.pop();
+      } else {
+        match = options[randInt(options.length)];
+      }
+
+      if (!match) {
+        const matchNum = matches.length + 1;
+        const santaNum = allMatches.length + 1;
+        throw new Error(`Unable to create match #${matchNum} for santa #${santaNum}: ${name}`);
+      }
+
+      const toRemove = allGroups.filter(group => group.includes(match)).flat();
+      options = options.filter(option => !toRemove.includes(option));
+
+      matchCounts[match] += 1;
+      matches.push(match);
+    }
+
+    allMatches.push([name, email, matches]);
+  }
+
+  return allMatches;
+};
+
+// Probably a more elegant way to do this than just a bunch of retries...
+const retryMatchSantas = (santaMap, allGroups, maxCount, maxRetries) => {
+  let attempts = 0;
+
+  while (true) {
+    try {
+      return matchSantas(santaMap, allGroups, maxCount);
+    } catch (err) {
+      if (attempts < maxRetries) {
+        attempts += 1;
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
 const santaMap = toSantaMap(config.santas);
+
 validateSantaMap(santaMap);
 validateGroups(santaMap, config.groups);
 
-console.log(santaMap);
+const matches = retryMatchSantas(santaMap, config.groups, config.count, config.maxRetries);
+
+console.log(matches);

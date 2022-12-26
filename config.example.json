@@ -1,0 +1,32 @@
+{
+  "count": 1,
+  "santas": [
+    {
+      "name": "Ziggy",
+      "email": "stardust1@mars.com",
+      "blocked": [
+        "Tom"
+      ]
+    },
+    {
+      "name": "Tom",
+      "email": "themajor@nasa.gov",
+      "blocked": [
+        "Ziggy"
+      ],
+      "always": [
+        "David"
+      ]
+    },
+    {
+      "name": "David",
+      "email": "duke@white.com"
+    }
+  ],
+  "groups": [
+    [
+      "Tom",
+      "David"
+    ]
+  ]
+}

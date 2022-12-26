@@ -4,6 +4,7 @@
   "description": "A simple script to send out secret santa emails",
   "main": "secret-santa.js",
   "scripts": {
+    "start": "node secret-santa.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

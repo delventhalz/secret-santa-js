@@ -1,8 +1,13 @@
 #! /usr/bin/env node
 
+const { existsSync, writeFileSync } = require('fs');
+const { resolve } = require('path');
 const config = require('./config.json');
 
+
+const PREVIOUS_PATH = './previous-matches.json';
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+
 
 const randInt = max => Math.floor(Math.random() * max);
 
@@ -17,6 +22,14 @@ const shuffle = (items) => {
 
   return shuffled;
 };
+
+
+const readJson = (path, defaultVal) => existsSync(path) ? require(path) : defaultVal;
+
+const writeJson = (path, data) => {
+  writeFileSync(resolve(__dirname, path), JSON.stringify(data, null, 2));
+};
+
 
 const toSantaMap = (santas) => {
   const map = new Map();
@@ -62,7 +75,8 @@ const validateGroups = (santaMap, groups) => {
   }
 };
 
-const matchSantas = (santaMap, allGroups, maxCount) => {
+
+const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
   const santas = shuffle([...santaMap.values()]);
   const santaNames = [...santaMap.keys()];
   const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
@@ -70,6 +84,11 @@ const matchSantas = (santaMap, allGroups, maxCount) => {
 
   for (const { name, email, blocked = [], always = [] } of santas) {
     const remainingAlways = [...always];
+
+    const previousNames = previousMatches
+      .filter(([matcher]) => matcher === name)
+      .map(([_, __, matches]) => matches)
+      .flat();
 
     const groupNames = allGroups
       .filter(group => group.includes(name))
@@ -85,6 +104,7 @@ const matchSantas = (santaMap, allGroups, maxCount) => {
         option !== name
         && !blocked.includes(option)
         && !always.includes(option)
+        && !previousNames.includes(option)
         && !groupNames.includes(option)
         && !groupMatches.includes(option)
         && matchCounts[option] < maxCount
@@ -122,12 +142,12 @@ const matchSantas = (santaMap, allGroups, maxCount) => {
 };
 
 // Probably a more elegant way to do this than just a bunch of retries...
-const retryMatchSantas = (santaMap, allGroups, maxCount, maxRetries) => {
+const retryMatchSantas = (santaMap, previousMatches, allGroups, maxCount, maxRetries) => {
   let attempts = 0;
 
   while (true) {
     try {
-      return matchSantas(santaMap, allGroups, maxCount);
+      return matchSantas(santaMap, previousMatches, allGroups, maxCount);
     } catch (err) {
       if (attempts < maxRetries) {
         attempts += 1;
@@ -138,11 +158,20 @@ const retryMatchSantas = (santaMap, allGroups, maxCount, maxRetries) => {
   }
 };
 
+
 const santaMap = toSantaMap(config.santas);
 
 validateSantaMap(santaMap);
 validateGroups(santaMap, config.groups);
 
-const matches = retryMatchSantas(santaMap, config.groups, config.count, config.maxRetries);
+const matches = retryMatchSantas(
+  santaMap,
+  readJson(PREVIOUS_PATH, []),
+  config.groups,
+  config.count,
+  config.maxRetries
+);
+
+writeJson(PREVIOUS_PATH, matches);
 
 console.log(matches);

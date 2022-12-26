@@ -1,5 +1,6 @@
 # Secret Santa
 config.json
+previous-matches.json
 
 # Logs
 logs

@@ -137,7 +137,7 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
       if (!match) {
         const matchNum = matches.length + 1;
         const santaNum = allMatches.length + 1;
-        throw new Error(`Unable to create match #${matchNum} for santa #${santaNum}: ${name}`);
+        throw new Error(`Unable to create match #${matchNum} for Santa #${santaNum}: ${name}`);
       }
 
       const toRemove = allGroups.filter(group => group.includes(match)).flat();

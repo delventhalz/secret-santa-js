@@ -170,7 +170,8 @@ const retryMatchSantas = (santaMap, previousMatches, allGroups, maxCount, maxRet
   }
 };
 
-console.log('Generating Secret Santa list...');
+
+console.log('Reading config files...');
 
 const santaMap = toSantaMap(config.santas);
 validateSantaMap(santaMap);
@@ -178,6 +179,9 @@ validateGroups(santaMap, config.groups);
 
 const mainTemplate = readFile('./emails/main.txt', './emails/main.default.txt');
 const listTemplate = readFile('./emails/full-list.txt', './emails/full-list.default.txt');
+
+
+console.log('Generating Secret Santa list...');
 
 const previousMatches = retryMatchSantas(
   santaMap,
@@ -189,48 +193,49 @@ const previousMatches = retryMatchSantas(
 
 const matches = previousMatches[previousMatches.length - 1];
 
-console.log('Sending emails...');
 
-import('emailjs')
-  .then(({ SMTPClient }) => {
-    const smtpClient = new SMTPClient({
-      user: config.sender.email,
-      password: config.sender.password,
-      host: config.sender.host,
-      ssl: true
-    });
+const sendEmails = async () => {
+  console.log('Sending emails...');
 
-    const matchesList = matches.map(([name, assignees]) => {
-      return `${name} <${santaMap.get(name).email}>: ${assignees.join(', ')}`;
-    });
-    const listEmail = parseEmail(listTemplate, {
-      matches: matchesList
-    });
-    const listPromise = smtpClient.sendAsync({
-      to: `${config.sender.name} <${config.sender.email}>`,
-      from: `Secret Santa <${config.sender.email}>`,
-      subject: listEmail.subject,
-      text: listEmail.body
-    });
-
-    const matchPromises = matches.map(([name, assignees]) => {
-      const mainEmail = parseEmail(mainTemplate, {
-        name,
-        assignees,
-        organizer: config.sender.name
-      });
-
-      return smtpClient.sendAsync({
-        to: `${name} <${santaMap.get(name).email}>`,
-        from: `Secret Santa <${config.sender.email}>`,
-        subject: mainEmail.subject,
-        text: mainEmail.body
-      });
-    });
-
-    return Promise.all([...matchPromises, listPromise]);
-  })
-  .then(() => {
-    writeJson('./config.json', { ...config, previousMatches });
-    console.log('...Secret Santa list generated and distributed!');
+  const { SMTPClient } = await import('emailjs');
+  const smtpClient = new SMTPClient({
+    user: config.sender.email,
+    password: config.sender.password,
+    host: config.sender.host,
+    ssl: true
   });
+
+  const textMatches = matches.map(([name, assignees]) => {
+    return `${name} <${santaMap.get(name).email}>: ${assignees.join(', ')}`;
+  });
+  const listEmail = parseEmail(listTemplate, {
+    matches: textMatches
+  });
+
+  await smtpClient.sendAsync({
+    to: `${config.sender.name} <${config.sender.email}>`,
+    from: `Secret Santa <${config.sender.email}>`,
+    subject: listEmail.subject,
+    text: listEmail.body
+  });
+
+  await Promise.all(matches.map(([name, assignees]) => {
+    const mainEmail = parseEmail(mainTemplate, {
+      name,
+      assignees,
+      organizer: config.sender.name
+    });
+
+    return smtpClient.sendAsync({
+      to: `${name} <${santaMap.get(name).email}>`,
+      from: `Secret Santa <${config.sender.email}>`,
+      subject: mainEmail.subject,
+      text: mainEmail.body
+    });
+  }));
+
+  writeJson('./config.json', { ...config, previousMatches });
+  console.log('...Done!');
+};
+
+sendEmails();

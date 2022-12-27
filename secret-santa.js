@@ -11,19 +11,6 @@ const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 
 const randInt = max => Math.floor(Math.random() * max);
 
-const shuffle = (items) => {
-  const source = items.slice();
-  const shuffled = [];
-
-  while (source.length > 0) {
-    const index = randInt(source.length);
-    shuffled.push(...source.splice(index, 1));
-  }
-
-  return shuffled;
-};
-
-
 const readJson = (path, defaultVal) => existsSync(path) ? require(path) : defaultVal;
 
 const writeJson = (path, data) => {
@@ -100,12 +87,11 @@ const validateGroups = (santaMap, groups) => {
 
 
 const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
-  const santas = shuffle([...santaMap.values()]);
   const santaNames = [...santaMap.keys()];
   const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
   const allMatches = [];
 
-  for (const { name, email, blocked = [], always = [] } of santas) {
+  for (const { name, email, blocked = [], always = [] } of santaMap.values()) {
     const remainingAlways = [...always];
 
     const previousNames = previousMatches

@@ -5,9 +5,7 @@ const { resolve } = require('path');
 const config = require('./config.json');
 
 
-const PREVIOUS_PATH = './previous-matches.json';
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-
 
 const randInt = max => Math.floor(Math.random() * max);
 
@@ -86,7 +84,7 @@ const validateGroups = (santaMap, groups) => {
 };
 
 
-const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
+const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
   const santaNames = [...santaMap.keys()];
   const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
   const allMatches = [];
@@ -94,7 +92,7 @@ const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
   for (const { name, email, blocked = [], always = [] } of santaMap.values()) {
     const remainingAlways = [...always];
 
-    const previousNames = previousMatches
+    const blockedMatchNames = blockedMatches
       .filter(([matcher]) => matcher === name)
       .map(([_, __, matches]) => matches)
       .flat();
@@ -113,7 +111,7 @@ const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
         option !== name
         && !blocked.includes(option)
         && !always.includes(option)
-        && !previousNames.includes(option)
+        && !blockedMatchNames.includes(option)
         && !groupNames.includes(option)
         && !groupMatches.includes(option)
         && matchCounts[option] < maxCount
@@ -152,14 +150,19 @@ const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
 
 // Probably a more elegant way to do this than just a bunch of retries...
 const retryMatchSantas = (santaMap, previousMatches, allGroups, maxCount, maxRetries) => {
+  const remainingMatches = [...previousMatches];
   let attempts = 0;
 
   while (true) {
     try {
-      return matchSantas(santaMap, previousMatches, allGroups, maxCount);
+      const matches = matchSantas(santaMap, remainingMatches.flat(), allGroups, maxCount);
+      return [...remainingMatches, matches];
     } catch (err) {
       if (attempts < maxRetries) {
         attempts += 1;
+      } else if (remainingMatches.length > 0) {
+        remainingMatches.shift();
+        attempts = 0;
       } else {
         throw err;
       }
@@ -176,13 +179,15 @@ validateGroups(santaMap, config.groups);
 const mainTemplate = readFile('./emails/main.txt', './emails/main.default.txt');
 const listTemplate = readFile('./emails/full-list.txt', './emails/full-list.default.txt');
 
-const matches = retryMatchSantas(
+const previousMatches = retryMatchSantas(
   santaMap,
-  readJson(PREVIOUS_PATH, []),
+  config.previousMatches,
   config.groups,
   config.count,
   config.maxRetries
 );
+
+const matches = previousMatches[previousMatches.length - 1];
 
 console.log('Sending emails...');
 
@@ -226,6 +231,6 @@ import('emailjs')
     return Promise.all([...matchPromises, listPromise]);
   })
   .then(() => {
-    writeJson(PREVIOUS_PATH, matches);
+    writeJson('./config.json', { ...config, previousMatches });
     console.log('...Secret Santa list generated and distributed!');
   });

@@ -89,12 +89,12 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
   const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
   const allMatches = [];
 
-  for (const { name, email, blocked = [], always = [] } of santaMap.values()) {
+  for (const { name, blocked = [], always = [] } of santaMap.values()) {
     const remainingAlways = [...always];
 
     const blockedMatchNames = blockedMatches
       .filter(([matcher]) => matcher === name)
-      .map(([_, __, matches]) => matches)
+      .map(([_, matches]) => matches)
       .flat();
 
     const groupNames = allGroups
@@ -103,7 +103,7 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
 
     const groupMatches = allMatches
       .filter(([matcher]) => groupNames.includes(matcher))
-      .map(([_, __, matches]) => matches)
+      .map(([_, matches]) => matches)
       .flat();
 
     let options = santaNames.filter(option => {
@@ -142,7 +142,7 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
       matches.push(match);
     }
 
-    allMatches.push([name, email, matches]);
+    allMatches.push([name, matches]);
   }
 
   return allMatches;
@@ -200,8 +200,8 @@ import('emailjs')
       ssl: true
     });
 
-    const matchesList = matches.map(([name, email, assignees]) => {
-      return `${name} <${email}>: ${assignees.join(', ')}`;
+    const matchesList = matches.map(([name, assignees]) => {
+      return `${name} <${santaMap.get(name).email}>: ${assignees.join(', ')}`;
     });
     const listEmail = parseEmail(listTemplate, {
       matches: matchesList
@@ -213,7 +213,7 @@ import('emailjs')
       text: listEmail.body
     });
 
-    const matchPromises = matches.map(([name, email, assignees]) => {
+    const matchPromises = matches.map(([name, assignees]) => {
       const mainEmail = parseEmail(mainTemplate, {
         name,
         assignees,
@@ -221,7 +221,7 @@ import('emailjs')
       });
 
       return smtpClient.sendAsync({
-        to: `${name} <${email}>`,
+        to: `${name} <${santaMap.get(name).email}>`,
         from: `Secret Santa <${config.sender.email}>`,
         subject: mainEmail.subject,
         text: mainEmail.body

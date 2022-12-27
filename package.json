@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/delventhalz/secret-santa-js/issues"
   },
-  "homepage": "https://github.com/delventhalz/secret-santa-js#readme"
+  "homepage": "https://github.com/delventhalz/secret-santa-js#readme",
+  "dependencies": {
+    "emailjs": "^4.0.1"
+  }
 }

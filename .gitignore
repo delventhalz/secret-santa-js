@@ -1,6 +1,9 @@
 # Secret Santa
 config.json
 previous-matches.json
+emails/main.txt
+emails/full-list.txt
+
 
 # Logs
 logs

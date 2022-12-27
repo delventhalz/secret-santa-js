@@ -1,6 +1,12 @@
 {
   "count": 1,
   "maxRetries": 10,
+  "sender": {
+    "name": "Ziggy",
+    "email": "stardust1@mars.com",
+    "password": "1234shhhh",
+    "host": "smtp.mars.com"
+  },
   "santas": [
     {
       "name": "Ziggy",

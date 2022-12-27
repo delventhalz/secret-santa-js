@@ -1,0 +1,10 @@
+SUBJECT: Your Secret Santa Assignment!
+BODY:
+Hello {{name}},
+
+You have been added to a Secret Santa exchange by {{organizer}}.
+
+You are getting a gift for:
+{{assignees}}
+
+Shhhhhh, don't tell anyone!

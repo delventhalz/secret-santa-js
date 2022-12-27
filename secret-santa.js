@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-const { existsSync, writeFileSync } = require('fs');
+const { existsSync, readFileSync, writeFileSync } = require('fs');
 const { resolve } = require('path');
 const config = require('./config.json');
 
@@ -28,6 +28,29 @@ const readJson = (path, defaultVal) => existsSync(path) ? require(path) : defaul
 
 const writeJson = (path, data) => {
   writeFileSync(resolve(__dirname, path), JSON.stringify(data, null, 2));
+};
+
+const readFile = (customPath, defaultPath) => {
+  const customResolved = resolve(__dirname, customPath);
+  const path = existsSync(customResolved) ? customResolved : resolve(__dirname, defaultPath);
+
+  return readFileSync(path, 'utf8');
+};
+
+const parseEmail = (template, substitutions) => {
+  let email = template;
+
+  for (const [key, val] of Object.entries(substitutions)) {
+    const sub = Array.isArray(val) ? `  - ${val.join('\n  - ')}\n` : val;
+    email = email.replace(new RegExp(`{{${key}}}`, 'g'), sub);
+  }
+
+  const [_, subject, body] = email.match(/SUBJECT:([\s\S]*)BODY:([\s\S]*)/);
+
+  return {
+    subject: subject.trim(),
+    body: body.trim()
+  };
 };
 
 
@@ -158,11 +181,14 @@ const retryMatchSantas = (santaMap, previousMatches, allGroups, maxCount, maxRet
   }
 };
 
+console.log('Generating Secret Santa list...');
 
 const santaMap = toSantaMap(config.santas);
-
 validateSantaMap(santaMap);
 validateGroups(santaMap, config.groups);
+
+const mainTemplate = readFile('./emails/main.txt', './emails/main.default.txt');
+const listTemplate = readFile('./emails/full-list.txt', './emails/full-list.default.txt');
 
 const matches = retryMatchSantas(
   santaMap,
@@ -172,6 +198,48 @@ const matches = retryMatchSantas(
   config.maxRetries
 );
 
-writeJson(PREVIOUS_PATH, matches);
+console.log('Sending emails...');
 
-console.log(matches);
+import('emailjs')
+  .then(({ SMTPClient }) => {
+    const smtpClient = new SMTPClient({
+      user: config.sender.email,
+      password: config.sender.password,
+      host: config.sender.host,
+      ssl: true
+    });
+
+    const matchesList = matches.map(([name, email, assignees]) => {
+      return `${name} <${email}>: ${assignees.join(', ')}`;
+    });
+    const listEmail = parseEmail(listTemplate, {
+      matches: matchesList
+    });
+    const listPromise = smtpClient.sendAsync({
+      to: `${config.sender.name} <${config.sender.email}>`,
+      from: `Secret Santa <${config.sender.email}>`,
+      subject: listEmail.subject,
+      text: listEmail.body
+    });
+
+    const matchPromises = matches.map(([name, email, assignees]) => {
+      const mainEmail = parseEmail(mainTemplate, {
+        name,
+        assignees,
+        organizer: config.sender.name
+      });
+
+      return smtpClient.sendAsync({
+        to: `${name} <${email}>`,
+        from: `Secret Santa <${config.sender.email}>`,
+        subject: mainEmail.subject,
+        text: mainEmail.body
+      });
+    });
+
+    return Promise.all([...matchPromises, listPromise]);
+  })
+  .then(() => {
+    writeJson(PREVIOUS_PATH, matches);
+    console.log('...Secret Santa list generated and distributed!');
+  });

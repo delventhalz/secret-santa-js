@@ -92,6 +92,10 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
   for (const { name, blocked = [], always = [] } of santaMap.values()) {
     const remainingAlways = [...always];
 
+    const personalSantas = allMatches
+      .filter(([_, matches]) => matches.includes(name))
+      .map(([matcher]) => matcher);
+
     const blockedMatchNames = blockedMatches
       .filter(([matcher]) => matcher === name)
       .map(([_, matches]) => matches)
@@ -111,6 +115,7 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
         option !== name
           && !blocked.includes(option)
           && !always.includes(option)
+          && !personalSantas.includes(option)
           && !blockedMatchNames.includes(option)
           && !groupNames.includes(option)
           && !groupMatchNames.includes(option)

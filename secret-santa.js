@@ -101,7 +101,7 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
       .filter(group => group.includes(name))
       .flat();
 
-    const groupMatches = allMatches
+    const groupMatchNames = allMatches
       .filter(([matcher]) => groupNames.includes(matcher))
       .map(([_, matches]) => matches)
       .flat();
@@ -109,12 +109,12 @@ const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
     let options = santaNames.filter(option => {
       return (
         option !== name
-        && !blocked.includes(option)
-        && !always.includes(option)
-        && !blockedMatchNames.includes(option)
-        && !groupNames.includes(option)
-        && !groupMatches.includes(option)
-        && matchCounts[option] < maxCount
+          && !blocked.includes(option)
+          && !always.includes(option)
+          && !blockedMatchNames.includes(option)
+          && !groupNames.includes(option)
+          && !groupMatchNames.includes(option)
+          && matchCounts[option] < maxCount
       );
     });
 

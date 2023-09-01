@@ -21,7 +21,7 @@ Node module it uses to send emails.
 ## Config
 
 First copy the [config.example.json](./config.example.json) file and remove the
-".default" portion of the filename. This `config.json` file will be the basis
+".example" portion of the filename. This `config.json` file will be the basis
 of your Secret Santa lists, including email credentials. It is gitignored and
 should not be committed or shared anywhere.
 

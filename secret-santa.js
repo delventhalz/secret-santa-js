@@ -22,6 +22,21 @@ const readFile = (customPath, defaultPath) => {
   return readFileSync(path, 'utf8');
 };
 
+const getUpcomingChristmasYear = () => {
+  const now = new Date();
+
+  // All date values are local
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // getMonth is zero-based
+  const day = now.getDate();
+
+  if (month === 12 && day > 24) {
+    return year + 1;
+  }
+
+  return year;
+};
+
 const parseEmail = (template, substitutions) => {
   let email = template;
 
@@ -210,10 +225,13 @@ const sendEmails = async () => {
     ssl: true
   });
 
+  const year = getUpcomingChristmasYear();
   const textMatches = matches.map(([name, assignees]) => {
     return `${name} <${santaMap.get(name).email}>: ${assignees.join(', ')}`;
   });
+
   const listEmail = parseEmail(listTemplate, {
+    year,
     matches: textMatches
   });
 
@@ -228,6 +246,7 @@ const sendEmails = async () => {
     const mainEmail = parseEmail(mainTemplate, {
       name,
       assignees,
+      year,
       organizer: config.sender.name
     });
 

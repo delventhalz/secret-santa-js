@@ -1,8 +1,8 @@
-SUBJECT: Your Secret Santa Assignment!
+SUBJECT: Your Secret Santa {{year}} Assignment!
 BODY:
 Hello {{name}},
 
-You have been added to a Secret Santa exchange by {{organizer}}.
+You have been added to a Secret Santa exchange by {{organizer}} for Christmas {{year}}.
 
 You are getting a gift for:
 {{assignees}}

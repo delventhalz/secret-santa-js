@@ -1,4 +1,4 @@
-SUBJECT: Secret Santa MASTER LIST (spoiler warning - optional to open)
+SUBJECT: Secret Santa {{year}} MASTER LIST (spoiler warning - optional to open)
 BODY:
 WARNING!!!
 

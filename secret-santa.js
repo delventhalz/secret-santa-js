@@ -2,12 +2,11 @@
 
 const { existsSync, readFileSync, writeFileSync } = require('fs');
 const { resolve } = require('path');
-const config = require('./config.json');
 
 
 const EMAIL_PATTERN = /<?([A-Z0-9._%+-]+)@([A-Z0-9.-]+\.[A-Z]{2,})>?/i;
 
-const { SECRET_SANTA_TEST } = process.env;
+const { SECRET_SANTA_CONFIG, SECRET_SANTA_TEST } = process.env;
 const args = process.argv.slice(2);
 
 
@@ -21,6 +20,13 @@ const isArgTest = !isArgEmail && lastTestArg && lastTestArg !== '--test=false';
 // Command line args override environment variables
 const isEmailTest = isArgEmail || (isEnvEmail && !isArgTest);
 const isCommandLineTest = isEnvTest || isArgTest;
+
+const configPath = args.find(arg => arg.startsWith('--config='))?.split('=')[1]
+  || args.find(arg => !arg.startsWith('-'))
+  || SECRET_SANTA_CONFIG
+  || 'config.json';
+
+const config = require(`./${configPath}`);
 
 
 const randInt = max => Math.floor(Math.random() * max);

@@ -131,6 +131,22 @@ SECRET_SANTA_TEST=email ./secret-santa.js
 npm run test:email
 ```
 
+### Custom Config File Path
+
+The default path for the config file is just `config.json` at the root of this
+project, but if you would like to customize it, you can do so with the
+`SECRET_SANTA_CONFIG` environment variable, or with command line arguments.
+
+```bash
+SECRET_SANTA_CONFIG=some/other/config.json ./secret-santa.js
+./secret-santa.js some/other/config.json
+./secret-santa.js --config=some/other/config.json
+
+SECRET_SANTA_CONFIG=some/other/config.json npm start
+npm start some/other/config.json
+npm start -- --config=some/other/config.json
+```
+
 ## Future Development
 
 I created this for my own personal usage. I do not plan to work on it except as

@@ -120,6 +120,8 @@ const validateGroups = (santaMap, groups) => {
   }
 };
 
+const nameToContact = (santaMap, name) => `${name} <${santaMap.get(name).email}>`;
+
 
 const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
   const santaNames = [...santaMap.keys()];
@@ -221,6 +223,7 @@ validateGroups(santaMap, config.groups);
 
 const mainTemplate = readFile('./emails/main.txt', './emails/main.default.txt');
 const listTemplate = readFile('./emails/full-list.txt', './emails/full-list.default.txt');
+const conspiratorTemplate = readFile('./emails/conspirators.txt', './emails/conspirators.default.txt');
 
 
 console.log('Generating Secret Santa list...');
@@ -273,13 +276,12 @@ const sendEmails = async () => {
   }
 
   const year = getUpcomingChristmasYear();
-  const textMatches = matches.map(([name, assignees]) => {
-    return `${name} <${santaMap.get(name).email}>: ${assignees.join(', ')}`;
-  });
 
   const listEmail = parseEmail(listTemplate, {
     year,
-    matches: textMatches
+    matches: matches.map(([name, assignees]) => {
+      return `${nameToContact(santaMap, name)}: ${assignees.join(', ')}`;
+    })
   });
 
   await sendEmail(smtpClient, {
@@ -298,12 +300,36 @@ const sendEmails = async () => {
     });
 
     return sendEmail(smtpClient, {
-      to: `${name} <${santaMap.get(name).email}>`,
+      to: nameToContact(santaMap, name),
       from: `Secret Santa <${config.sender.email}>`,
       subject: mainEmail.subject,
       text: mainEmail.body
     });
   }));
+
+  if (config.notifyConspirators) {
+    await Promise.all(matches.map(([name, assignees]) => {
+      const conspirators = assignees.map(consp => {
+        return matches
+          .filter(([match]) => match !== name)
+          .filter(([_, matchAssignees]) => matchAssignees.includes(consp))
+          .map(([match]) => `${nameToContact(santaMap, match)}: ${consp}`);
+      });
+
+      const conspiratorEmail = parseEmail(conspiratorTemplate, {
+        name,
+        year,
+        conspirators
+      });
+
+      return sendEmail(smtpClient, {
+        to: nameToContact(santaMap, name),
+        from: `Secret Santa <${config.sender.email}>`,
+        subject: conspiratorEmail.subject,
+        text: conspiratorEmail.body
+      });
+    }));
+  }
 
   if (!isCommandLineTest && !isEmailTest) {
     writeJson('./config.json', { ...config, previousMatches });

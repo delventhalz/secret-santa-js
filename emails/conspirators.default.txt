@@ -1,0 +1,32 @@
+SUBJECT: Your Secret Santa {{year}} Conspirators (spoiler warning - optional to open)
+BODY:
+WARNING!!!
+
+{{name}}, this email includes identities of the Secret Santas who have been assigned the same person as you. This may be useful information if you want to coordinate on a gift, but you also may not want to spoil the surprise!
+
+Reading the rest of this email is OPTIONAL. Stop now unless you are sure!
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+.
+
+Okay...
+
+The Secret Santas assigned the same person as you are:
+{{conspirators}}

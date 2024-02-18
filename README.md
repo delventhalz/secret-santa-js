@@ -33,6 +33,8 @@ especially the `sender`, and `santas` properties.
 - `count`: The number of recipients each Santa is assigned
 - `maxRetries`: How many times the script should attempt to build a valid list
   before giving up
+- `notifyConspirators`: If set to `true`, sends a second email to each Santa
+  with the names of other Santas which share the same assignee
 - `sender`: Info for the person emailing out the lists
 - `sender.name`: The name of the organizer as will be written in an email
 - `sender.email`: The email address of the sender
@@ -66,12 +68,13 @@ potential santa:
 
 ## Customizing Email Text
 
-The [emails](./emails) directory contains two `.default.txt` files, one for the
-main email sent to each Santa, and one for the full list sent to the organizer
-as a fallback. These templates can be used without modification, but if you want
-to customize any of the text, copy the file and remove the `.default` portion of
-the file name. Any changes you make to the `SUBJECT` or `BODY` sections of those
-text files will be used rather than the defaults.
+The [emails](./emails) directory contains three `.default.txt` files as
+fallbacks: one for the main email sent to each Santa, one for the full list sent
+to the organizer, and one for notify conspirators of each other's names. These
+templates can be used without modification, but if you want to customize any of
+the text, copy the file and remove the `.default` portion of the file name. Any
+changes you make to the `SUBJECT` or `BODY` sections of those text files will be
+used rather than the defaults.
 
 ## Usage
 

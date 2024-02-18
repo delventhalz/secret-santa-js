@@ -5,7 +5,23 @@ const { resolve } = require('path');
 const config = require('./config.json');
 
 
-const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const EMAIL_PATTERN = /<?([A-Z0-9._%+-]+)@([A-Z0-9.-]+\.[A-Z]{2,})>?/i;
+
+const { SECRET_SANTA_TEST } = process.env;
+const args = process.argv.slice(2);
+
+
+const isEnvEmail = SECRET_SANTA_TEST === 'email';
+const isEnvTest = !isEnvEmail && SECRET_SANTA_TEST && SECRET_SANTA_TEST !== 'false';
+
+const lastTestArg = args.findLast(arg => arg.startsWith('--test'));
+const isArgEmail = lastTestArg === '--test=email';
+const isArgTest = !isArgEmail && lastTestArg && lastTestArg !== '--test=false';
+
+// Command line args override environment variables
+const isEmailTest = isArgEmail || (isEnvEmail && !isArgTest);
+const isCommandLineTest = isEnvTest || isArgTest;
+
 
 const randInt = max => Math.floor(Math.random() * max);
 
@@ -213,17 +229,42 @@ const previousMatches = retryMatchSantas(
 
 const matches = previousMatches[previousMatches.length - 1];
 
+const sendEmail = (client, email) => {
+  if (isCommandLineTest) {
+    console.log('\n>>>>> TEST EMAIL SENT <<<<<');
+    console.log(email);
+    console.log('<<<< END OF TEST EMAIL >>>>\n');
+    return;
+  }
+
+  if (isEmailTest) {
+    const [_, senderName, senderDomain] = config.sender.email.match(EMAIL_PATTERN);
+    const [__, recipientName] = email.to.match(EMAIL_PATTERN);
+
+    return client.sendAsync({
+      ...email,
+      to: `${senderName}+${recipientName}@${senderDomain}`,
+      subject: `TEST EMAIL: ${email.subject}`
+    });
+  }
+
+  return client.sendAsync(email);
+};
 
 const sendEmails = async () => {
   console.log('Sending emails...');
 
-  const { SMTPClient } = await import('emailjs');
-  const smtpClient = new SMTPClient({
-    user: config.sender.email,
-    password: config.sender.password,
-    host: config.sender.host,
-    ssl: true
-  });
+  let smtpClient = null;
+
+  if (!isCommandLineTest) {
+    const { SMTPClient } = await import('emailjs');
+    smtpClient = new SMTPClient({
+      user: config.sender.email,
+      password: config.sender.password,
+      host: config.sender.host,
+      ssl: true
+    });
+  }
 
   const year = getUpcomingChristmasYear();
   const textMatches = matches.map(([name, assignees]) => {
@@ -235,7 +276,7 @@ const sendEmails = async () => {
     matches: textMatches
   });
 
-  await smtpClient.sendAsync({
+  await sendEmail(smtpClient, {
     to: `${config.sender.name} <${config.sender.email}>`,
     from: `Secret Santa <${config.sender.email}>`,
     subject: listEmail.subject,
@@ -250,7 +291,7 @@ const sendEmails = async () => {
       organizer: config.sender.name
     });
 
-    return smtpClient.sendAsync({
+    return sendEmail(smtpClient, {
       to: `${name} <${santaMap.get(name).email}>`,
       from: `Secret Santa <${config.sender.email}>`,
       subject: mainEmail.subject,
@@ -258,7 +299,10 @@ const sendEmails = async () => {
     });
   }));
 
-  writeJson('./config.json', { ...config, previousMatches });
+  if (!isCommandLineTest && !isEmailTest) {
+    writeJson('./config.json', { ...config, previousMatches });
+  }
+
   console.log('...Done!');
 };
 

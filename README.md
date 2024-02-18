@@ -103,6 +103,34 @@ complex to generate a complete list. You may need to loosen some restrictions
 in order to get it to work. You can also try increasing `maxRetries` if you are
 sure a list is possible, but it takes the script more tries to find it.
 
+### Dry Test Runs
+
+There are two ways to test your Secret Santa config works as expected. The first
+is to do a dry run entirely within the command line. This will log the data for
+each email, but not send anything to anyone. This option can be specified from
+the command line with the `SECRET_SANTA_TEST` environment variable, the `--test`
+command line arg, or by running the `npm test` script.
+
+```bash
+SECRET_SANTA_TEST=true ./secret-santa.js
+./secret-santa.js --test=true
+./secret-santa.js --test
+npm test
+```
+
+The second option is to do an _email_ test. This will send out every email, but
+they will go to the configured sender rather than the intended recipient. To
+help with debugging, the "to" field for emails sent will include the `+`
+character followed by the name of the recipient. To specify this option, set the
+`SECRET_SANTA_TEST` environment variable to `"email"`, use the `--test=email`
+command line arg, or run the `npm run test:email` script.
+
+```bash
+SECRET_SANTA_TEST=email ./secret-santa.js
+./secret-santa.js --test=email
+npm run test:email
+```
+
 ## Future Development
 
 I created this for my own personal usage. I do not plan to work on it except as

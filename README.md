@@ -16,7 +16,7 @@ npm install
 ```
 
 This will download the Secret Santa script and its config files, as well as the
-Node module it uses to send emails.
+modules it uses to generate assignments and send emails.
 
 ## Config
 
@@ -31,8 +31,6 @@ especially the `sender`, and `santas` properties.
 ### Config Properties
 
 - `count`: The number of recipients each Santa is assigned
-- `maxRetries`: How many times the script should attempt to build a valid list
-  before giving up
 - `notifyConspirators`: If set to `true`, sends a second email to each Santa
   with the names of other Santas which share the same assignee
 - `sender`: Info for the person emailing out the lists
@@ -44,9 +42,8 @@ especially the `sender`, and `santas` properties.
 - `santas`: An array of `Santa` objects, the givers and recipients of the list
 - `groups` _(optional)_: An array of arrays containing groups of names which
   must be found in the `santas` array. Commonly used for couples, members of a
-  group will be handled specially relative to each other. Members of a group
-  will never be assigned to each other, nor will there be any repeat
-  assignments within a group.
+  group will be handled specially relative to each other. They will generally
+  not be assigned to each other, nor be assigned the same people.
 - `previousMatches`: This array is used to prevent repeat matches from year to
   year and is populated automatically. DO NOT MODIFY IT. You may also want to
   avoid looking at it if you don't want to spoil the surprise.
@@ -61,10 +58,9 @@ potential santa:
   Santas with the same first name, include a last name or last initial.
 - `email`: The email address to send the Secret Santa list too.
 - `blocked` _(optional)_: An array of names of other Santas which _this_ Santa
-  should _not_ be assigned as a recipient. This can be used instead of `groups`
-  to block couples from being assigned each other.
-- `always` _(optional)_: Bypasses most of the other assignment rules and just
-  assigns the named Santa to this Santa directly.
+  should _not_ be assigned as a recipient.
+- `always` _(optional)_: The opposite of blocked, these are names which _should_
+  be assigned to this Santa if possible.
 
 ## Customizing Email Text
 
@@ -95,16 +91,10 @@ Once run, the script will first validate your config files, generate a list,
 and then finally email each Santa their portion of the list. The script may fail
 with an error if your configuration files are missing or misformatted.
 
-You may also see an error like this:
-
-```
-Unable to create match #2 for Santa #3: David
-```
-
-This sort of error may indicate that your config rules are too specific or
-complex to generate a complete list. You may need to loosen some restrictions
-in order to get it to work. You can also try increasing `maxRetries` if you are
-sure a list is possible, but it takes the script more tries to find it.
+If you notice sub-optimal outcomes, for example Santas getting the same
+assignments as last year or being assigned people on their blocked list, it is
+likely your config doesn't have enough Santas or is too specific to make a more
+optimal match. You can try tweaking your file and trying again.
 
 ### Dry Test Runs
 

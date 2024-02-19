@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 const { existsSync, readFileSync, writeFileSync } = require('fs');
+const munkres = require('munkres-js');
 const { resolve } = require('path');
 
 
@@ -123,95 +124,106 @@ const validateGroups = (santaMap, groups) => {
 const nameToContact = (santaMap, name) => `${name} <${santaMap.get(name).email}>`;
 
 
-const matchSantas = (santaMap, blockedMatches, allGroups, maxCount) => {
-  const santaNames = [...santaMap.keys()];
-  const matchCounts = Object.fromEntries(santaNames.map(name => [name, 0]));
-  const allMatches = [];
+// Generate an array of assignment scores for a particular santa, lower is better
+const scoreSantaMatches = (santa, currentMatches, previousMatches, allGroups) => {
+  const santaGroups = allGroups.filter(group => group.includes(santa.name));
+  const santaGroupMates = santaGroups.flat().filter(name => name !== santa.name);
 
-  for (const { name, blocked = [], always = [] } of santaMap.values()) {
-    const remainingAlways = [...always];
+  const alreadyMatched = currentMatches.find(([name]) => name === santa.name)[1];
+  const alreadyMatchedGroup = alreadyMatched
+    .flatMap(name => allGroups.filter(group => group.includes(name)).flat())
+    .filter(name => !alreadyMatched.includes(name));
 
-    const personalSantas = allMatches
-      .filter(([_, matches]) => matches.includes(name))
-      .map(([matcher]) => matcher);
+  const groupMatched = currentMatches
+    .filter(([name]) => santaGroupMates.includes(name))
+    .map(([_, matches]) => matches)
+    .flat();
+  const matchedSanta = currentMatches
+    .filter(([_, matches]) => matches.includes(santa.name))
+    .map(([name]) => name);
+  const santaPreviousMatches = previousMatches
+    .map(prev => prev.find(([name]) => name === santa.name))
+    .filter(Boolean)
+    .map(([_, matches]) => matches);
+  const unmatchedAlways = santa.always
+    ?.filter(name => !alreadyMatched.includes(name))
+    ?? [];
 
-    const blockedMatchNames = blockedMatches
-      .filter(([matcher]) => matcher === name)
-      .map(([_, matches]) => matches)
-      .flat();
+  const santaCount = currentMatches.length;
+  const prevMatchCount = santaPreviousMatches.length;
 
-    const groupNames = allGroups
-      .filter(group => group.includes(name))
-      .flat();
+  return currentMatches.map(([assignee]) => {
+    let score = 0;
 
-    const groupMatchNames = allMatches
-      .filter(([matcher]) => groupNames.includes(matcher))
-      .map(([_, matches]) => matches)
-      .flat();
+    // Random tie breaker
+    score += Math.ceil(Math.random() * santaCount ** 2);
 
-    let options = santaNames.filter(option => {
-      return (
-        option !== name
-          && !blocked.includes(option)
-          && !always.includes(option)
-          && !personalSantas.includes(option)
-          && !blockedMatchNames.includes(option)
-          && !groupNames.includes(option)
-          && !groupMatchNames.includes(option)
-          && matchCounts[option] < maxCount
-      );
+    // Previous matches with this assignee in increasing importance
+    santaPreviousMatches.forEach((matches, index) => {
+      if (matches.includes(assignee)) {
+        score += santaCount ** (index + 3);
+      }
     });
 
-    const matches = [];
-
-    while (matches.length < maxCount) {
-      let match;
-
-      if (remainingAlways.length > 0) {
-        match = remainingAlways.pop();
-      } else {
-        match = options[randInt(options.length)];
-      }
-
-      if (!match) {
-        const matchNum = matches.length + 1;
-        const santaNum = allMatches.length + 1;
-        throw new Error(`Unable to create match #${matchNum} for Santa #${santaNum}: ${name}`);
-      }
-
-      const toRemove = allGroups.filter(group => group.includes(match)).flat();
-      options = options.filter(option => !toRemove.includes(option));
-
-      matchCounts[match] += 1;
-      matches.push(match);
+    // Assignee matched to someone in the santa's group
+    if (groupMatched.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 3);
     }
 
-    allMatches.push([name, matches]);
-  }
+    // Assignee has already had the santa matched to them
+    if (matchedSanta.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 4);
+    }
 
-  return allMatches;
+    // Assignee is in the santa's group
+    if (santaGroupMates.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 5);
+    }
+
+    // Assignee is blocked by the santa
+    if (santa.blocked?.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 6);
+    }
+
+    // Assignee is in santa's always list but has not already been matched
+    // (Improves score by reducing it)
+    if (unmatchedAlways.includes(assignee)) {
+      score -= santaCount ** (prevMatchCount + 7);
+    }
+
+    // Santa has already been matched with assignee
+    if (alreadyMatched.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 8);
+    }
+
+    // Santa is assignee
+    if (santa.name === assignee) {
+      score += santaCount ** (prevMatchCount + 9);
+    }
+
+    return score;
+  })
 };
 
-// Probably a more elegant way to do this than just a bunch of retries...
-const retryMatchSantas = (santaMap, previousMatches, allGroups, maxCount, maxRetries) => {
-  const remainingMatches = [...previousMatches];
-  let attempts = 0;
+const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
+  const santas = [...santaMap.values()];
+  const santaNames = [...santaMap.keys()];
+  const matches = santaNames.map(name => [name, []]);
 
-  while (true) {
-    try {
-      const matches = matchSantas(santaMap, remainingMatches.flat(), allGroups, maxCount);
-      return [...remainingMatches, matches];
-    } catch (err) {
-      if (attempts < maxRetries) {
-        attempts += 1;
-      } else if (remainingMatches.length > 0) {
-        remainingMatches.shift();
-        attempts = 0;
-      } else {
-        throw err;
-      }
+  for (let i = 0; i < maxCount; i += 1) {
+    const scores = santas.map((santa) => {
+      return scoreSantaMatches(santa, matches, previousMatches, allGroups);
+    });
+
+    // Assign santas based on a matrix of scores, lower is better
+    const assignments = munkres(scores);
+
+    for (const [santaIndex, assigneeIndex] of assignments) {
+      matches[santaIndex][1].push(santaNames[assigneeIndex]);
     }
   }
+
+  return matches;
 };
 
 
@@ -227,16 +239,8 @@ const conspiratorTemplate = readFile('./emails/conspirators.txt', './emails/cons
 
 
 console.log('Generating Secret Santa list...');
+const matches = matchSantas(santaMap, config.previousMatches, config.groups, config.count);
 
-const previousMatches = retryMatchSantas(
-  santaMap,
-  config.previousMatches,
-  config.groups,
-  config.count,
-  config.maxRetries
-);
-
-const matches = previousMatches[previousMatches.length - 1];
 
 const sendEmail = (client, email) => {
   if (isCommandLineTest) {
@@ -332,7 +336,10 @@ const sendEmails = async () => {
   }
 
   if (!isCommandLineTest && !isEmailTest) {
-    writeJson('./config.json', { ...config, previousMatches });
+    writeJson('./config.json', {
+      ...config,
+      previousMatches: [...config.previousMatches, matches]
+    });
   }
 
   console.log('...Done!');

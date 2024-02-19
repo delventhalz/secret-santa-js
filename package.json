@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/delventhalz/secret-santa-js#readme",
   "dependencies": {
-    "emailjs": "^4.0.1"
+    "emailjs": "^4.0.1",
+    "munkres-js": "^1.2.2"
   }
 }

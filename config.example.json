@@ -1,6 +1,5 @@
 {
   "count": 1,
-  "maxRetries": 10,
   "notifyConspirators": false,
   "sender": {
     "name": "Ziggy",

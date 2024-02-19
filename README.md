@@ -43,7 +43,8 @@ especially the `sender`, and `santas` properties.
 - `groups` _(optional)_: An array of arrays containing groups of names which
   must be found in the `santas` array. Commonly used for couples, members of a
   group will be handled specially relative to each other. They will generally
-  not be assigned to each other, nor be assigned the same people.
+  not be assigned to each other, nor be assigned the same people, and not be
+  assigned _to_ the same people.
 - `previousMatches`: This array is used to prevent repeat matches from year to
   year and is populated automatically. DO NOT MODIFY IT. You may also want to
   avoid looking at it if you don't want to spoil the surprise.

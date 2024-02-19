@@ -165,40 +165,45 @@ const scoreSantaMatches = (santa, currentMatches, previousMatches, allGroups) =>
       }
     });
 
+    // Assignee is in a group with someone already matched with the santa
+    if (alreadyMatchedGroup.includes(assignee)) {
+      score += santaCount ** (prevMatchCount + 3);
+    }
+
     // Assignee matched to someone in the santa's group
     if (groupMatched.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 3);
+      score += santaCount ** (prevMatchCount + 4);
     }
 
     // Assignee has already had the santa matched to them
     if (matchedSanta.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 4);
+      score += santaCount ** (prevMatchCount + 5);
     }
 
     // Assignee is in the santa's group
     if (santaGroupMates.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 5);
+      score += santaCount ** (prevMatchCount + 6);
     }
 
     // Assignee is blocked by the santa
     if (santa.blocked?.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 6);
+      score += santaCount ** (prevMatchCount + 7);
     }
 
     // Assignee is in santa's always list but has not already been matched
     // (Improves score by reducing it)
     if (unmatchedAlways.includes(assignee)) {
-      score -= santaCount ** (prevMatchCount + 7);
+      score -= santaCount ** (prevMatchCount + 8);
     }
 
     // Santa has already been matched with assignee
     if (alreadyMatched.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 8);
+      score += santaCount ** (prevMatchCount + 9);
     }
 
     // Santa is assignee
     if (santa.name === assignee) {
-      score += santaCount ** (prevMatchCount + 9);
+      score += santaCount ** (prevMatchCount + 10);
     }
 
     return score;

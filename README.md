@@ -141,6 +141,32 @@ npm start some/other/config.json
 npm start -- --config=some/other/config.json
 ```
 
+### Sending A Reminder Email
+
+If you want to remind folks of their assignments, you can send an email to all
+Santas with the their same assignments from their most recent match in
+`previousMatches` in your config file. This is a good way to remind folks
+without spoiling the surprise by manually checking your most recent reminders.
+Send a reminder email by setting the environment variable
+`SECRET_SANTA_REMINDER` to true, calling the script with the `--reminder` flag,
+or by running the `npm run reminder` script.
+
+```bash
+SECRET_SANTA_REMINDER=true ./secret-santa.js
+./secret-santa.js --reminder=true
+./secret-santa.js --reminder
+npm run reminder
+```
+
+You can also combine this with the test options to test a reminder email.
+
+```bash
+SECRET_SANTA_TEST=true SECRET_SANTA_REMINDER=true ./secret-santa.js
+./secret-santa.js --test=email --reminder=true
+./secret-santa.js --test --reminder
+npm test -- --reminder
+```
+
 ## Future Development
 
 I created this for my own personal usage. I do not plan to work on it except as

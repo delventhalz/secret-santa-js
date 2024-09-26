@@ -5,8 +5,9 @@
   "main": "secret-santa.js",
   "scripts": {
     "start": "node secret-santa.js",
-    "test": "SECRET_SANTA_TEST=true npm start",
-    "test:email": "SECRET_SANTA_TEST=email npm start"
+    "reminder": "SECRET_SANTA_REMINDER=true npm start --",
+    "test": "SECRET_SANTA_TEST=true npm start --",
+    "test:email": "SECRET_SANTA_TEST=email npm start --"
   },
   "repository": {
     "type": "git",

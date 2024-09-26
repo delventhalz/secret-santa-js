@@ -7,7 +7,7 @@ const { resolve } = require('path');
 
 const EMAIL_PATTERN = /<?([A-Z0-9._%+-]+)@([A-Z0-9.-]+\.[A-Z]{2,})>?/i;
 
-const { SECRET_SANTA_CONFIG, SECRET_SANTA_TEST } = process.env;
+const { SECRET_SANTA_CONFIG, SECRET_SANTA_REMINDER, SECRET_SANTA_TEST } = process.env;
 const args = process.argv.slice(2);
 
 
@@ -18,9 +18,14 @@ const lastTestArg = args.findLast(arg => arg.startsWith('--test'));
 const isArgEmail = lastTestArg === '--test=email';
 const isArgTest = !isArgEmail && lastTestArg && lastTestArg !== '--test=false';
 
+const isEnvReminder = SECRET_SANTA_REMINDER && SECRET_SANTA_REMINDER !== 'false';
+const lastReminderArg = args.findLast(arg => arg.startsWith('--reminder'));
+const isArgReminder = lastReminderArg && lastReminderArg !== '--reminder=false';
+
 // Command line args override environment variables
 const isEmailTest = isArgEmail || (isEnvEmail && !isArgTest);
 const isCommandLineTest = isEnvTest || isArgTest;
+const isReminderEmail = isEnvReminder || isArgReminder;
 
 const configPath = args.find(arg => arg.startsWith('--config='))?.split('=')[1]
   || args.find(arg => !arg.startsWith('-'))
@@ -244,29 +249,43 @@ const conspiratorTemplate = readFile('./emails/conspirators.txt', './emails/cons
 
 
 console.log('Generating Secret Santa list...');
-const matches = matchSantas(santaMap, config.previousMatches, config.groups, config.count);
+const matches = isReminderEmail
+  ? config.previousMatches.at(-1)
+  : matchSantas(santaMap, config.previousMatches, config.groups, config.count);
 
+const subjectPrefix = isEmailTest && isReminderEmail
+  ? 'TEST EMAIL: Reminder: '
+  : isEmailTest
+  ? 'TEST EMAIL: '
+  : isReminderEmail
+  ? 'Reminder: '
+  : '';
 
 const sendEmail = (client, email) => {
+  const withSubjectPrefix = {
+    ...email,
+    subject: subjectPrefix + email.subject
+  };
+
   if (isCommandLineTest) {
     console.log('\n>>>>> TEST EMAIL SENT <<<<<');
-    console.log(email);
+    console.log(withSubjectPrefix);
     console.log('<<<< END OF TEST EMAIL >>>>\n');
     return;
   }
+
 
   if (isEmailTest) {
     const [_, senderName, senderDomain] = config.sender.email.match(EMAIL_PATTERN);
     const [__, recipientName] = email.to.match(EMAIL_PATTERN);
 
     return client.sendAsync({
-      ...email,
+      ...withSubjectPrefix,
       to: `${senderName}+${recipientName}@${senderDomain}`,
-      subject: `TEST EMAIL: ${email.subject}`
     });
   }
 
-  return client.sendAsync(email);
+  return client.sendAsync(withSubjectPrefix);
 };
 
 const sendEmails = async () => {
@@ -340,7 +359,7 @@ const sendEmails = async () => {
     }));
   }
 
-  if (!isCommandLineTest && !isEmailTest) {
+  if (!isCommandLineTest && !isEmailTest && !isReminderEmail) {
     writeJson('./config.json', {
       ...config,
       previousMatches: [...config.previousMatches, matches]

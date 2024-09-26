@@ -1,5 +1,3 @@
-#! /usr/bin/env node
-
 const { existsSync, readFileSync, writeFileSync } = require('fs');
 const munkres = require('munkres-js');
 const { resolve } = require('path');
@@ -7,32 +5,24 @@ const { resolve } = require('path');
 
 const EMAIL_PATTERN = /<?([A-Z0-9._%+-]+)@([A-Z0-9.-]+\.[A-Z]{2,})>?/i;
 
-const { SECRET_SANTA_CONFIG, SECRET_SANTA_REMINDER, SECRET_SANTA_TEST } = process.env;
-const args = process.argv.slice(2);
+const {
+  SECRET_SANTA_CONFIG,
+  SECRET_SANTA_TEST,
+  npm_config_config,
+  npm_config_test,
+  npm_config_reminder
+} = process.env;
 
-
-const isEnvEmail = SECRET_SANTA_TEST === 'email';
-const isEnvTest = !isEnvEmail && SECRET_SANTA_TEST && SECRET_SANTA_TEST !== 'false';
-
-const lastTestArg = args.findLast(arg => arg.startsWith('--test'));
-const isArgEmail = lastTestArg === '--test=email';
-const isArgTest = !isArgEmail && lastTestArg && lastTestArg !== '--test=false';
-
-const isEnvReminder = SECRET_SANTA_REMINDER && SECRET_SANTA_REMINDER !== 'false';
-const lastReminderArg = args.findLast(arg => arg.startsWith('--reminder'));
-const isArgReminder = lastReminderArg && lastReminderArg !== '--reminder=false';
 
 // Command line args override environment variables
-const isEmailTest = isArgEmail || (isEnvEmail && !isArgTest);
-const isCommandLineTest = isEnvTest || isArgTest;
-const isReminderEmail = isEnvReminder || isArgReminder;
-
-const configPath = args.find(arg => arg.startsWith('--config='))?.split('=')[1]
-  || args.find(arg => !arg.startsWith('-'))
-  || SECRET_SANTA_CONFIG
-  || 'config.json';
-
+const configPath = npm_config_config || SECRET_SANTA_CONFIG || 'config.json';
 const config = require(`./${configPath}`);
+
+const testSetting = npm_config_test || SECRET_SANTA_TEST;
+const isEmailTest = testSetting === 'email';
+const isCommandLineTest = !isEmailTest && Boolean(testSetting) && testSetting !== 'false';
+
+const isReminderEmail = Boolean(npm_config_reminder) && npm_config_reminder !== 'false';
 
 
 const randInt = max => Math.floor(Math.random() * max);

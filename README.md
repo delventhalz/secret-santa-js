@@ -76,13 +76,7 @@ used rather than the defaults.
 ## Usage
 
 Once all of your config files are in order, you are ready to run your script.
-Since the file is a bash executable, you can run it directly:
-
-```bash
-./secret-santa.js
-```
-
-It can also be run with npm from within the project directory if desired.
+The best way is to use npm from within the project directory.
 
 ```bash
 npm start
@@ -106,9 +100,9 @@ the command line with the `SECRET_SANTA_TEST` environment variable, the `--test`
 command line arg, or by running the `npm test` script.
 
 ```bash
-SECRET_SANTA_TEST=true ./secret-santa.js
-./secret-santa.js --test=true
-./secret-santa.js --test
+SECRET_SANTA_TEST=true npm start
+npm start --test=true
+npm start --test
 npm test
 ```
 
@@ -120,8 +114,8 @@ character followed by the name of the recipient. To specify this option, set the
 command line arg, or run the `npm run test:email` script.
 
 ```bash
-SECRET_SANTA_TEST=email ./secret-santa.js
-./secret-santa.js --test=email
+SECRET_SANTA_TEST=email npm start
+npm start --test=email
 npm run test:email
 ```
 
@@ -129,16 +123,12 @@ npm run test:email
 
 The default path for the config file is just `config.json` at the root of this
 project, but if you would like to customize it, you can do so with the
-`SECRET_SANTA_CONFIG` environment variable, or with command line arguments.
+`SECRET_SANTA_CONFIG` environment variable, or with the `--config` command line
+argument.
 
 ```bash
-SECRET_SANTA_CONFIG=some/other/config.json ./secret-santa.js
-./secret-santa.js some/other/config.json
-./secret-santa.js --config=some/other/config.json
-
 SECRET_SANTA_CONFIG=some/other/config.json npm start
-npm start some/other/config.json
-npm start -- --config=some/other/config.json
+npm start --config=some/other/config.json
 ```
 
 ### Sending A Reminder Email
@@ -146,25 +136,23 @@ npm start -- --config=some/other/config.json
 If you want to remind folks of their assignments, you can send an email to all
 Santas with the their same assignments from their most recent match in
 `previousMatches` in your config file. This is a good way to remind folks
-without spoiling the surprise by manually checking your most recent reminders.
-Send a reminder email by setting the environment variable
-`SECRET_SANTA_REMINDER` to true, calling the script with the `--reminder` flag,
-or by running the `npm run reminder` script.
+without spoiling the surprise by manually checking. Send a reminder email by
+calling the script with the `--reminder` command line argument, or by running
+the `npm run reminder` script. There is no environment variable for this option.
 
 ```bash
-SECRET_SANTA_REMINDER=true ./secret-santa.js
-./secret-santa.js --reminder=true
-./secret-santa.js --reminder
+npm start --reminder=true
+npm start --reminder
 npm run reminder
 ```
 
 You can also combine this with the test options to test a reminder email.
 
 ```bash
-SECRET_SANTA_TEST=true SECRET_SANTA_REMINDER=true ./secret-santa.js
-./secret-santa.js --test=email --reminder=true
-./secret-santa.js --test --reminder
-npm test -- --reminder
+SECRET_SANTA_TEST=true npm start --reminder=true
+npm start --test=email --reminder=true
+npm start --test --reminder
+npm test --reminder
 ```
 
 ## Future Development

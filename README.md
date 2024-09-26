@@ -155,6 +155,34 @@ npm start --test --reminder
 npm test --reminder
 ```
 
+### Remove A Santa and Reassign
+
+If you lose a Santa after assignment, they can be removed by moving their
+assignees to the Santa(s) who were originally assigned the removed Santa. The
+Santa(s) with the changes can then be notified with a new email. This ensures
+minimal disruption as no other assignments need to change.
+
+Note that this will permanently change your `previousMatches`, but will _not_
+change your `santas` list. To remove a Santa from _future_ assignments, manually
+remove them from the `santas` list in your `config.json`.
+
+To remove a Santa from the most recent assignment, run the script with the
+`--remove` flag. The value must be a valid name from your recent matches. You
+can use quotes to include a space.
+
+```bash
+npm start --remove=Tom
+npm start --remove="Tom, Major"
+```
+
+This can be combined with test runs as well.
+
+```bash
+SECRET_SANTA_TEST=true npm start --remove=Tom
+npm start --remove=Tom --test=email
+npm test --remove=Tom
+```
+
 ## Future Development
 
 I created this for my own personal usage. I do not plan to work on it except as

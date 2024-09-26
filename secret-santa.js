@@ -10,7 +10,8 @@ const {
   SECRET_SANTA_TEST,
   npm_config_config,
   npm_config_test,
-  npm_config_reminder
+  npm_config_reminder,
+  npm_config_remove
 } = process.env;
 
 
@@ -23,7 +24,13 @@ const isEmailTest = testSetting === 'email';
 const isCommandLineTest = !isEmailTest && Boolean(testSetting) && testSetting !== 'false';
 
 const isReminderEmail = Boolean(npm_config_reminder) && npm_config_reminder !== 'false';
+const santaToRemove = npm_config_remove;
 
+const subjectPrefix = isReminderEmail
+  ? 'REMINDER: '
+  : santaToRemove
+  ? 'UPDATE: '
+  : '';
 
 const randInt = max => Math.floor(Math.random() * max);
 
@@ -115,6 +122,18 @@ const validateGroups = (santaMap, groups) => {
     }
   }
 };
+
+const validateSantaToRemove = () => {
+  if (santaToRemove) {
+    if (isReminderEmail) {
+      throw new Error('Cannot remove a Santa in a reminder email');
+    }
+
+    if (config.previousMatches.at(-1).every(([name]) => name !== santaToRemove)) {
+      throw new Error(`Cannot remove Santa not in most recent matches: ${santaToRemove}`);
+    }
+  }
+}
 
 const nameToContact = (santaMap, name) => `${name} <${santaMap.get(name).email}>`;
 
@@ -226,30 +245,57 @@ const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
   return matches;
 };
 
+const removeSantaFromLastMatches = (santa, santaMap) => {
+  const lastMatches = config.previousMatches.at(-1);
+  const olderMatches = config.previousMatches.slice(0, -1);
+
+  const brokenMatches = lastMatches.filter(([_, matches]) => matches.includes(santa));
+  const brokenSantas = brokenMatches.map(([name]) => name);
+  const [_, brokenAssignees] = lastMatches.find(([name]) => name === santa);
+  const brokenAssigneesAsMatches = brokenAssignees.map(assignee => [assignee, []]);
+
+  const scores = brokenSantas.map(santa => {
+    const santaObj = santaMap.get(santa);
+    const matches = [[santa, []], ...brokenAssigneesAsMatches];
+    return scoreSantaMatches(santaObj, matches, olderMatches, config.groups);
+  });
+
+  const assignments = munkres(scores.map(perSanta => perSanta.slice(1)));
+
+  const updates = assignments.map(([santaIndex, assigneeIndex]) => {
+    const [name, assignees] = brokenMatches[santaIndex];
+    const updated = [
+      ...assignees.filter(assignee => assignee !== santa),
+      brokenAssignees[assigneeIndex]
+    ];
+
+    return [name, updated];
+  });
+
+  const updatedMatches = lastMatches
+    .filter(([name]) => name !== santa)
+    .map(match => updates.find(([name]) => match[0] === name) ?? match);
+
+  return [updatedMatches, brokenSantas];
+};
+
+const writePreviousMatches = (previousMatches) => {
+  if (!isCommandLineTest && !isEmailTest && !isReminderEmail) {
+    writeJson(configPath, { ...config, previousMatches });
+  }
+};
 
 console.log('Reading config files...');
 
 const santaMap = toSantaMap(config.santas);
 validateSantaMap(santaMap);
 validateGroups(santaMap, config.groups);
+validateSantaToRemove();
 
 const mainTemplate = readFile('./emails/main.txt', './emails/main.default.txt');
 const listTemplate = readFile('./emails/full-list.txt', './emails/full-list.default.txt');
 const conspiratorTemplate = readFile('./emails/conspirators.txt', './emails/conspirators.default.txt');
 
-
-console.log('Generating Secret Santa list...');
-const matches = isReminderEmail
-  ? config.previousMatches.at(-1)
-  : matchSantas(santaMap, config.previousMatches, config.groups, config.count);
-
-const subjectPrefix = isEmailTest && isReminderEmail
-  ? 'TEST EMAIL: Reminder: '
-  : isEmailTest
-  ? 'TEST EMAIL: '
-  : isReminderEmail
-  ? 'Reminder: '
-  : '';
 
 const sendEmail = (client, email) => {
   const withSubjectPrefix = {
@@ -264,7 +310,6 @@ const sendEmail = (client, email) => {
     return;
   }
 
-
   if (isEmailTest) {
     const [_, senderName, senderDomain] = config.sender.email.match(EMAIL_PATTERN);
     const [__, recipientName] = email.to.match(EMAIL_PATTERN);
@@ -272,13 +317,14 @@ const sendEmail = (client, email) => {
     return client.sendAsync({
       ...withSubjectPrefix,
       to: `${senderName}+${recipientName}@${senderDomain}`,
+      subject: `[TEST EMAIL] ${withSubjectPrefix.subject}`
     });
   }
 
   return client.sendAsync(withSubjectPrefix);
 };
 
-const sendEmails = async () => {
+const sendEmails = async (matches, updateList = []) => {
   console.log('Sending emails...');
 
   let smtpClient = null;
@@ -309,7 +355,9 @@ const sendEmails = async () => {
     text: listEmail.body
   });
 
-  await Promise.all(matches.map(([name, assignees]) => {
+  const matchRecipients = matches.filter(([name]) => updateList.includes(name));
+
+  await Promise.all(matchRecipients.map(([name, assignees]) => {
     const mainEmail = parseEmail(mainTemplate, {
       name,
       assignees,
@@ -326,7 +374,7 @@ const sendEmails = async () => {
   }));
 
   if (config.notifyConspirators) {
-    await Promise.all(matches.map(([name, assignees]) => {
+    await Promise.all(matchRecipients.map(([name, assignees]) => {
       const conspirators = assignees.map(consp => {
         return matches
           .filter(([match]) => match !== name)
@@ -348,15 +396,25 @@ const sendEmails = async () => {
       });
     }));
   }
-
-  if (!isCommandLineTest && !isEmailTest && !isReminderEmail) {
-    writeJson('./config.json', {
-      ...config,
-      previousMatches: [...config.previousMatches, matches]
-    });
-  }
-
-  console.log('...Done!');
 };
 
-sendEmails();
+
+if (santaToRemove) {
+  console.log(`Removing ${santaToRemove} from previous Secret Santa list...`);
+  const [updatedMatches, updateList] = removeSantaFromLastMatches(santaToRemove, santaMap);
+  sendEmails(updatedMatches, updateList).then(() => {
+    writePreviousMatches([...config.previousMatches.slice(0, -1), updatedMatches]);
+    console.log('...Done!');
+  });
+} else if (isReminderEmail) {
+  console.log('Fetching previous Secret Santa list...');
+  sendEmails(config.previousMatches.at(-1));
+  console.log('...Done!');
+} else {
+  console.log('Generating Secret Santa list...');
+  const matches = matchSantas(santaMap, config.previousMatches, config.groups, config.count);
+  sendEmails(matches).then(() => {
+    writePreviousMatches([...config.previousMatches, matches]);
+    console.log('...Done!');
+  });
+}

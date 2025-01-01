@@ -30,21 +30,21 @@ especially the `sender`, and `santas` properties.
 
 ### Config Properties
 
-- `count`: The number of recipients each Santa is assigned
+- `count`: The number of recipients each Santa should be assigned
 - `notifyConspirators`: If set to `true`, sends a second email to each Santa
   with the names of other Santas which share the same assignee
-- `sender`: Info for the person emailing out the lists
-- `sender.name`: The name of the organizer as will be written in an email
-- `sender.email`: The email address of the sender
-- `sender.password`: The password for the email account, commonly a revocable
+- `sender`: An object with info for the person emailing out the lists
+  * `sender.name`: The name of the organizer as it will be written in emails
+  * `sender.email`: The email address of the sender
+  * `sender.password`: The password for the email account, commonly a revocable
   "app password" generated specifically for this script
-- `sender.host`: The SMTP host, for example: smtp.gmail.com
+  * `sender.host`: The SMTP host, for example: smtp.gmail.com
 - `santas`: An array of `Santa` objects, the givers and recipients of the list
-- `groups` _(optional)_: An array of arrays containing groups of names which
-  must be found in the `santas` array. Commonly used for couples, members of a
-  group will be handled specially relative to each other. They will generally
-  not be assigned to each other, nor be assigned the same people, and not be
-  assigned _to_ the same people.
+- `groups`: An array of arrays containing groups of names which must be found in
+  the `santas` array. Commonly used for couples, members of a group will be
+  handled specially. The script will attempt to not assign members of a group to
+  each other, not assign them the same people, and not assign members _to_ the
+  same people.
 - `previousMatches`: This array is used to prevent repeat matches from year to
   year and is populated automatically. DO NOT MODIFY IT. You may also want to
   avoid looking at it if you don't want to spoil the surprise.
@@ -52,26 +52,26 @@ especially the `sender`, and `santas` properties.
 ### Santa Properties
 
 Each `Santa` object within the `santas` property has properties describing that
-potential santa:
+potential Santa:
 
-- `name`: This is the name of recipient which will be written in emails. It is
-  also the identifier used to identify the Santa, and so must be unique. For
-  Santas with the same first name, include a last name or last initial.
-- `email`: The email address to send the Secret Santa list too.
-- `blocked` _(optional)_: An array of names of other Santas which _this_ Santa
-  should _not_ be assigned as a recipient.
-- `always` _(optional)_: The opposite of blocked, these are names which _should_
-  be assigned to this Santa if possible.
+- `name`: The name of recipient as it will be written in emails. This is also an
+  identifier for the Santa, so it must be unique. For Santas with the same first
+  name, include a last name or last initial.
+- `email`: The email address to send this Santa's recipients to
+- `blocked` _(optional)_: An array of Santa names which should not be assigned
+  to this Santa
+- `always` _(optional)_: The opposite of blocked, an array of Santa names which
+  should always be assigned to this Santa if possible
 
 ## Customizing Email Text
 
-The [emails](./emails) directory contains three `.default.txt` files as
-fallbacks: one for the main email sent to each Santa, one for the full list sent
-to the organizer, and one for notify conspirators of each other's names. These
-templates can be used without modification, but if you want to customize any of
-the text, copy the file and remove the `.default` portion of the file name. Any
-changes you make to the `SUBJECT` or `BODY` sections of those text files will be
-used rather than the defaults.
+The [emails](./emails) directory contains three `.default.txt` files: one for
+the main email sent to each Santa, one for the full list sent to the organizer,
+and one to notify conspirators of each other's names. These templates can be
+used without modification, but if you want to customize any of the text,
+duplicate the file and remove the `.default` portion of the name. Any changes
+made to the `SUBJECT` or `BODY` sections of those text files will be used
+instead of the defaults.
 
 ## Usage
 
@@ -83,13 +83,13 @@ npm start
 ```
 
 Once run, the script will first validate your config files, generate a list,
-and then finally email each Santa their portion of the list. The script may fail
-with an error if your configuration files are missing or misformatted.
+and finally email each Santa their portion of the list. The script may fail with
+an error if your configuration files are missing or misformatted.
 
 If you notice sub-optimal outcomes, for example Santas getting the same
 assignments as last year or being assigned people on their blocked list, it is
-likely your config doesn't have enough Santas or is too specific to make a more
-optimal match. You can try tweaking your file and trying again.
+likely your config doesn't have enough Santas or has too specific requirements
+to make a more optimal match. You can try tweaking your config and trying again.
 
 ### Dry Test Runs
 
@@ -159,7 +159,7 @@ npm test --reminder
 
 If you lose a Santa after assignment, they can be removed by moving their
 assignees to the Santa(s) who were originally assigned the removed Santa. The
-Santa(s) with the changes can then be notified with a new email. This ensures
+Santa(s) with the changes will then be notified with a new email. This ensures
 minimal disruption as no other assignments need to change.
 
 Note that this will permanently change your `previousMatches`, but will _not_

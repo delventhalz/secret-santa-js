@@ -324,7 +324,7 @@ const sendEmail = (client, email) => {
   return client.sendAsync(withSubjectPrefix);
 };
 
-const sendEmails = async (matches, updateList = []) => {
+const sendEmails = async (matches, updateList = null) => {
   console.log('Sending emails...');
 
   let smtpClient = null;
@@ -355,7 +355,9 @@ const sendEmails = async (matches, updateList = []) => {
     text: listEmail.body
   });
 
-  const matchRecipients = matches.filter(([name]) => updateList.includes(name));
+  const matchRecipients = updateList
+    ? matches.filter(([name]) => updateList.includes(name))
+    : matches;
 
   await Promise.all(matchRecipients.map(([name, assignees]) => {
     const mainEmail = parseEmail(mainTemplate, {

@@ -172,25 +172,32 @@ const scoreSantaMatches = (santa, currentMatches, previousMatches, allGroups) =>
     // Random tie breaker
     score += Math.ceil(Math.random() * santaCount ** 2);
 
-    // Previous matches with this assignee in increasing importance
-    santaPreviousMatches.forEach((matches, index) => {
+    // Older previous matches with this assignee in increasing importance
+    santaPreviousMatches.slice(0, -2).forEach((matches, index) => {
       if (matches.includes(assignee)) {
         score += santaCount ** (index + 3);
       }
     });
 
+    // Assignee has already had the santa matched to them
+    if (matchedSanta.includes(assignee)) {
+      score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 3);
+    }
+
+    // Last two years of previous matches
+    santaPreviousMatches.slice(-2).forEach((matches, index) => {
+      if (matches.includes(assignee)) {
+        score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 4 + index);
+      }
+    });
+
     // Assignee is in a group with someone already matched with the santa
     if (alreadyMatchedGroup.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 3);
+      score += santaCount ** (prevMatchCount + 4);
     }
 
     // Assignee matched to someone in the santa's group
     if (groupMatched.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 4);
-    }
-
-    // Assignee has already had the santa matched to them
-    if (matchedSanta.includes(assignee)) {
       score += santaCount ** (prevMatchCount + 5);
     }
 

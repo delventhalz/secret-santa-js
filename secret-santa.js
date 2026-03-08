@@ -179,52 +179,55 @@ const scoreSantaMatches = (santa, currentMatches, previousMatches, allGroups) =>
       }
     });
 
+    // Reserving a gap at prevMatchCount - Math.min(prevMatchCount, 2) + 3
+    // for the munkres retry hack in matchSantas below!
+
     // Assignee has already had the santa matched to them
     if (matchedSanta.includes(assignee)) {
-      score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 3);
+      score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 4);
     }
 
     // Last two years of previous matches
     santaPreviousMatches.slice(-2).forEach((matches, index) => {
       if (matches.includes(assignee)) {
-        score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 4 + index);
+        score += santaCount ** (prevMatchCount - Math.min(prevMatchCount, 2) + 5 + index);
       }
     });
 
     // Assignee is in a group with someone already matched with the santa
     if (alreadyMatchedGroup.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 4);
+      score += santaCount ** (prevMatchCount + 5);
     }
 
     // Assignee matched to someone in the santa's group
     if (groupMatched.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 5);
+      score += santaCount ** (prevMatchCount + 6);
     }
 
     // Assignee is in the santa's group
     if (santaGroupMates.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 6);
+      score += santaCount ** (prevMatchCount + 7);
     }
 
     // Assignee is blocked by the santa
     if (santa.blocked?.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 7);
+      score += santaCount ** (prevMatchCount + 8);
     }
 
     // Assignee is in santa's always list but has not already been matched
     // (Improves score by reducing it)
     if (unmatchedAlways.includes(assignee)) {
-      score -= santaCount ** (prevMatchCount + 8);
+      score -= santaCount ** (prevMatchCount + 9);
     }
 
     // Santa has already been matched with assignee
     if (alreadyMatched.includes(assignee)) {
-      score += santaCount ** (prevMatchCount + 9);
+      score += santaCount ** (prevMatchCount + 10);
     }
 
     // Santa is assignee
     if (santa.name === assignee) {
-      score += santaCount ** (prevMatchCount + 10);
+      score += santaCount ** (prevMatchCount + 11);
     }
 
     return score;
@@ -242,7 +245,30 @@ const matchSantas = (santaMap, previousMatches, allGroups, maxCount) => {
     });
 
     // Assign santas based on a matrix of scores, lower is better
-    const assignments = munkres(scores);
+    let assignments = munkres(scores);
+
+    // The following is a hack to deal with munkres not caring if it assigns
+    // two santas to each other. If it happens, we adjust scores and retry once.
+    const doubleAssignments = assignments
+      .filter(a => assignments.some(b => a[0] === b[1] && a[1] === b[0]))
+      .filter((a, i, all) => !all.slice(0, i).some(b => a[1] === b[0]));
+
+    if (doubleAssignments.length > 0) {
+      // This adjustment matches the gap in order of magnitude reserved in
+      // scoreSantaMatches above. Not guaranteed to remove double assignments,
+      // but any more and we risk increasing repeat matches year over year.
+      const adjustment = santas.length ** (previousMatches.length - Math.min(previousMatches.length, 2) + 3);
+
+      for (const [santaIndex, assigneeIndex] of doubleAssignments) {
+        if (scores[santaIndex][assigneeIndex] > scores[assigneeIndex][santaIndex]) {
+          scores[santaIndex][assigneeIndex] += adjustment;
+        } else {
+          scores[assigneeIndex][santaIndex] += adjustment;
+        }
+      }
+
+      assignments = munkres(scores);
+    }
 
     for (const [santaIndex, assigneeIndex] of assignments) {
       matches[santaIndex][1].push(santaNames[assigneeIndex]);

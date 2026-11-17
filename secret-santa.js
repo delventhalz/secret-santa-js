@@ -414,7 +414,7 @@ const sendEmails = async (matches, updateList = null) => {
         return matches
           .filter(([match]) => match !== name)
           .filter(([_, matchAssignees]) => matchAssignees.includes(consp))
-          .map(([match]) => `${nameToContact(santaMap, match)}: ${consp}`);
+          .map(([match]) => `${nameToContact(santaMap, match)} is also santa for ${consp}`);
       });
 
       const conspiratorEmail = parseEmail(conspiratorTemplate, {
